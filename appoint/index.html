@@ -250,6 +250,7 @@ function toast(msg, ms){ const t = $('toast'); t.textContent = msg; t.classList.
 async function start(){
   if (DEMO) $('demoBanner').classList.remove('hidden');
   S.token = load('lfa_tok');
+  if (DEMO && /[?&]skip=1/.test(location.search)) S.token = 'demo';
   if (!S.token){ toLogin(); return; }
   await enter();
 }
