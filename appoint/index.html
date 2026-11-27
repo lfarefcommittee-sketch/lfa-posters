@@ -90,6 +90,9 @@
 
   .add{width:100%;border:2px dashed var(--green2);color:var(--green2);background:#fff;border-radius:16px;
     padding:14px;font-size:16px;font-weight:700;margin:4px 0 12px}
+  .roundbar{position:sticky;top:58px;z-index:10;background:var(--bg);padding:8px 0 4px;margin-bottom:6px}
+  .roundbar select{width:100%;padding:13px;border:1.5px solid var(--green2);border-radius:12px;background:#fff;font-size:17px;font-weight:700;color:var(--green)}
+  .roundbar .add{margin:10px 0 0}
   .toggle{display:block;margin:4px auto 12px;background:none;border:0;color:var(--muted);text-decoration:underline;font-size:14px}
 
   /* save bar */
@@ -349,7 +352,7 @@ function goHome(){ S.items = []; S.tab=''; $('div').value=''; $('openBtn').disab
 
 /* ======== تحميل التبويب ======== */
 async function openTab(tab, fromHash){
-  S.tab = tab; S.showPast = false;
+  S.tab = tab; S.showPast = false; S.round = '';
   if (!fromHash) history.pushState(null,'','#'+encodeURIComponent(tab));
   $('tabName').textContent = tab; $('tabSub').textContent = '';
   $('list').innerHTML = '<div class="loading">جارٍ التحميل…</div>';
@@ -363,8 +366,9 @@ async function reload(){
     if (!d.ok){ if (d.err === 'auth'){ toLogin('انتهت جلسة الدخول، سجّل الدخول مجدداً.'); return; } throw new Error(d.err); }
     S.data = d;
     S.items = d.rows.map(x => ({ key:'r'+x.r, r:x.r, o:x.v.slice(), v:x.v.slice(), del:false, open:false }));
-    const rounds = [...new Set(d.rows.map(x => x.v[0]).filter(Boolean))];
-    $('tabSub').textContent = (rounds.length ? 'المرحلة ' + rounds.join('، ') + ' · ' : '') + d.rows.length + ' مباريات';
+    const rs = roundsList();
+    if (!S.round || (S.round !== 'all' && rs.indexOf(S.round) < 0 && !S.newRound)) S.round = rs[0] || '1';
+    S.newRound = false;
     render();
   }catch(e){
     $('list').innerHTML = '<div class="loading">تعذّر تحميل المباريات.<br><button class="btn" onclick="reload()">إعادة المحاولة</button></div>';
@@ -404,18 +408,45 @@ function nameKnown(role, n){
 /* ======== الرسم ======== */
 function sortKey(it){ return (toISO(it.v[1]) || '9999') + ' ' + (it.v[2] || '99:99'); }
 
+/* ======== المراحل ======== */
+const rnum = x => +latin(x) || 0;
+function roundsList(){
+  return [...new Set(S.items.map(it => String(rnum(it.v[0]))).filter(x => x !== '0'))].sort((a,b) => b - a);
+}
+function roundBar(){
+  const rs = roundsList();
+  if (S.round !== 'all' && rs.indexOf(S.round) < 0) rs.unshift(S.round);
+  rs.sort((a,b) => b - a);
+  const next = String(Math.max(0, ...rs.map(Number)) + 1);
+  const cnt = r => S.items.filter(it => !it.del && String(rnum(it.v[0])) === r).length;
+  return `<div class="roundbar">
+    <select id="roundSel" onchange="pickRound(this.value)">
+      ${rs.map(r => `<option value="${r}" ${r === S.round ? 'selected' : ''}>المرحلة ${r} (${cnt(r)} مباريات)</option>`).join('')}
+      <option value="all" ${S.round === 'all' ? 'selected' : ''}>جميع المراحل</option>
+      <option value="new:${next}">＋ مرحلة جديدة (المرحلة ${next})</option>
+    </select>
+    <button class="add" onclick="addMatch()">＋ إضافة مباراة${S.round !== 'all' ? ' إلى المرحلة ' + S.round : ''}</button>
+  </div>`;
+}
+function pickRound(v){
+  if (v.indexOf('new:') === 0){ S.round = v.slice(4); render(); addMatch(); return; }
+  S.round = v; S.showPast = false; render();
+}
+
 function render(){
   const today = todayISO();
-  const items = S.items.slice().sort((a,b) => (a.r ? 0 : 1) - (b.r ? 0 : 1) || sortKey(a).localeCompare(sortKey(b)));
+  const all = S.items.slice().sort((a,b) => (a.r ? 1 : 0) - (b.r ? 1 : 0) || sortKey(a).localeCompare(sortKey(b)));
+  const items = S.round === 'all' ? all : all.filter(it => String(rnum(it.v[0])) === S.round || (!it.r && !rnum(it.v[0])));
   const past = items.filter(it => it.r && toISO(it.v[1]) && toISO(it.v[1]) < today && !isChanged(it));
   const shown = S.showPast ? items : items.filter(it => past.indexOf(it) < 0);
-  let h = '';
-  if (!shown.length) h += '<div class="info">لا توجد مباريات قادمة في هذه الدرجة. اضغط «إضافة مباراة» لإضافة مباراة جديدة.</div>';
+  let h = roundBar();
+  if (!shown.length) h += '<div class="info">' + (past.length ? 'كل مباريات هذه المرحلة منتهية.' : 'لا توجد مباريات في هذه المرحلة بعد. اضغط «إضافة مباراة» في الأعلى.') + '</div>';
   else h += '<div class="info">اضغط على المباراة لتعديل التعيينات، ثم اضغط «حفظ» في الأسفل.</div>';
   shown.forEach(it => h += card(it, past.indexOf(it) >= 0));
   if (past.length) h += `<button class="toggle" onclick="S.showPast=!S.showPast;render()">${S.showPast ? 'إخفاء' : 'إظهار'} المباريات المنتهية (${past.length})</button>`;
-  h += '<button class="add" onclick="addMatch()">＋ إضافة مباراة</button>';
   $('list').innerHTML = h;
+  const n = S.items.filter(it => !it.del).length;
+  $('tabSub').textContent = (S.round === 'all' ? 'جميع المراحل' : 'المرحلة ' + S.round) + ' · ' + items.filter(it => !it.del).length + ' مباريات';
   updateBar();
 }
 
@@ -499,9 +530,9 @@ function delMatch(k){
   it.del = !it.del; render();
 }
 function addMatch(){
-  const last = S.items.filter(x => !x.del).slice(-1)[0];
   const v = new Array(W()).fill('');
-  if (last) v[0] = last.v[0];
+  if (S.round === 'all'){ const rs = roundsList(); v[0] = rs[0] || '1'; S.round = v[0]; }
+  else v[0] = S.round;
   const it = { key:'n'+(++S.seq), r:null, o:null, v, del:false, open:true };
   S.items.push(it); render();
   setTimeout(() => $('c_'+it.key).scrollIntoView({behavior:'smooth', block:'start'}), 30);
