@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="icon" href="logo.png">
 <title>لجنة الحكام – الرد على التعيين</title>
 <style>
   body { margin:0; background:#f2f4f7; font-family: Arial, Tahoma, sans-serif; color:#202124; }
@@ -26,10 +27,19 @@
   .msg.ok { background:#e6f4ea; color:#1e8e3e; } .msg.err { background:#fce8e6; color:#c5221f; }
   .foot { text-align:center; color:#80868b; font-size:13px; margin-top:14px; }
   .hide { display:none; }
+  .brand { text-align:center; padding:8px 0 14px; }
+  .brand img { width:92px; height:92px; display:block; margin:0 auto 8px; }
+  .brand .t1 { font-size:17px; font-weight:bold; color:#c5221f; }
+  .brand .t2 { font-size:14px; color:#5f6368; margin-top:2px; }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="brand">
+    <img src="logo.png" alt="الاتحاد اللبناني لكرة القدم">
+    <div class="t1">لجنة الحكام</div>
+    <div class="t2">الاتحاد اللبناني لكرة القدم</div>
+  </div>
   <div class="card" id="loading"><div class="sub" style="margin:0">جارٍ التحميل…</div></div>
 
   <div class="card hide" id="bad">
@@ -56,7 +66,6 @@
     </div>
     <div id="msg" class="msg"></div>
   </div>
-  <div class="foot">لجنة الحكام – الاتحاد اللبناني لكرة القدم</div>
 </div>
 
 <script>
