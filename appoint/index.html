@@ -237,6 +237,7 @@ function fromISO(iso){
 }
 function todayISO(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function shortDate(s){ const i = toISO(s); if(!i) return s || 'بدون تاريخ'; const p = s.split(' '); return (p.length>1? p[0]+' ':'') + i.slice(8)+'/'+i.slice(5,7); }
+const latin = t => String(t||'').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
 const norm = s => String(s||'').replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim();
 
 /* ======== الشاشات ======== */
@@ -440,7 +441,7 @@ function card(it, isPast){
     body = `<div class="body">
       <div class="sec">معلومات المباراة</div>
       <div class="row2">
-        <div class="f"><label>المرحلة</label><input inputmode="numeric" value="${esc(v[0])}" oninput="setv('${k}',0,this.value,true)"></div>
+        <div class="f"><label>المرحلة</label><input inputmode="numeric" value="${esc(v[0])}" oninput="this.value=latin(this.value).replace(/\D/g,'');setv('${k}',0,this.value,true)"></div>
         <div class="f"><label>الساعة</label><input type="time" value="${esc(v[2])}" onchange="setv('${k}',2,this.value)"></div>
       </div>
       <div class="f"><label>التاريخ</label><input type="date" value="${toISO(v[1])}" onchange="setv('${k}',1,fromISO(this.value))"></div>
@@ -547,10 +548,10 @@ $('sheet').onclick = e => { if (e.target === $('sheet')) closePicker(); };
 /* ======== الحفظ ======== */
 $('saveBtn').onclick = async () => {
   const todo = S.items.filter(isChanged);
-  const bad = todo.filter(it => !it.del && !(it.v[1] && it.v[2] && it.v[3] && it.v[4] && it.v[5]));
+  const bad = todo.filter(it => !it.del && !(it.v[1] && it.v[2] && it.v[3] && it.v[4] && it.v[5] && +latin(it.v[0]) >= 1 && +latin(it.v[0]) <= 60));
   if (bad.length){
     bad.forEach(it => it.open = true); render();
-    alert('يرجى إكمال التاريخ والساعة والفريقين والملعب لكل مباراة قبل الحفظ.');
+    alert('يرجى إكمال المرحلة (رقم من 1 إلى 60) والتاريخ والساعة والفريقين والملعب لكل مباراة قبل الحفظ.');
     return;
   }
   const dbl = todo.filter(it => !it.del && S.data.roles.some(r => clashes(it, r).length));
