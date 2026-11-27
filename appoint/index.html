@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d2e">
+<title>LFA – تعيينات الحكام</title>
+<link rel="icon" href="../reply/logo.png">
+<style>
+  :root{
+    --green:#0b3d2e; --green2:#14684d; --red:#c5221f; --amber:#b26a00;
+    --bg:#f3f5f4; --card:#fff; --line:#e1e6e3; --muted:#6b7570; --ink:#17201c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:16px;line-height:1.5}
+  button,input,select{font:inherit;color:inherit}
+  .hidden{display:none!important}
+
+  /* top bar */
+  .bar{position:sticky;top:0;z-index:20;background:var(--green);color:#fff;
+    display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top))}
+  .bar img{width:34px;height:34px;border-radius:50%;background:#fff;padding:2px}
+  .bar .t{flex:1;font-weight:700;font-size:17px}
+  .bar .t small{display:block;font-weight:400;font-size:12px;opacity:.8}
+  .bar button{background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:10px;padding:8px 12px;font-size:15px}
+
+  /* home & pin */
+  .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:24px;text-align:center;background:linear-gradient(180deg,#0b3d2e 0%,#14684d 55%,var(--bg) 55%)}
+  .hero .logo{width:120px;height:120px;border-radius:50%;background:#fff;padding:8px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  .hero h1{color:#fff;font-size:22px;margin:16px 0 2px}
+  .hero p.sub{color:#d7ebe2;margin:0 0 22px;font-size:14px}
+  .panel{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:420px;box-shadow:0 8px 28px rgba(0,0,0,.12);text-align:right}
+  .panel label{display:block;font-weight:700;margin-bottom:8px}
+  .panel select,.panel input{width:100%;padding:14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:18px}
+  .panel select:focus,.panel input:focus{outline:none;border-color:var(--green2)}
+  .btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font-size:17px;font-weight:700;
+    background:var(--green2);color:#fff;margin-top:14px}
+  .btn:disabled{opacity:.45}
+  .link{background:none;border:0;color:var(--muted);text-decoration:underline;margin-top:16px;font-size:14px}
+  .err{color:var(--red);font-size:14px;margin-top:8px;min-height:20px}
+
+  /* list */
+  main{padding:12px 12px 120px;max-width:640px;margin:0 auto}
+  .info{color:var(--muted);font-size:14px;margin:6px 4px 12px}
+  .card{background:var(--card);border-radius:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);
+    border:2px solid transparent;overflow:hidden}
+  .card.changed{border-color:#f0b429}
+  .card.isnew{border-color:#3d8bfd}
+  .card.del{opacity:.55;border-color:var(--red)}
+  .card.past{opacity:.7}
+  .sum{padding:14px 16px;cursor:pointer}
+  .when{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 12px}
+  .teams{font-size:18px;font-weight:700;margin:4px 0 2px}
+  .venue{font-size:14px;color:var(--muted)}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tag{font-size:12px;border-radius:20px;padding:3px 10px;background:#e8f3ee;color:var(--green2);font-weight:700}
+  .tag.warn{background:#fff2d9;color:var(--amber)}
+  .tag.bad{background:#fde8e7;color:var(--red)}
+  .tag.blue{background:#e5efff;color:#1d5fd1}
+  .crew{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;font-size:14px}
+  .crew div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+  .crew span:first-child{color:var(--muted)}
+  .crew .empty{color:#b9c1bd}
+  .chev{float:left;color:var(--muted);font-size:13px}
+
+  .body{padding:4px 16px 16px;border-top:1px solid var(--line);background:#fafbfa}
+  .sec{font-size:13px;font-weight:700;color:var(--green2);margin:14px 0 6px}
+  .f{margin-bottom:10px}
+  .f label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  .f input{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:17px}
+  .pick{width:100%;text-align:right;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;
+    font-size:17px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .pick .ph{color:#a3ada8}
+  .pick::after{content:"▾";color:var(--muted)}
+  .f.warn .pick{border-color:#f0b429;background:#fffaf0}
+  .f.bad .pick{border-color:var(--red);background:#fff6f5}
+  .note{font-size:12.5px;margin-top:4px}
+  .note.warn{color:var(--amber)} .note.bad{color:var(--red)}
+  .row2{display:flex;gap:10px}.row2 .f{flex:1}
+  .actions{display:flex;gap:10px;margin-top:14px}
+  .actions button{flex:1;border-radius:12px;padding:11px;font-size:15px;border:1.5px solid var(--line);background:#fff}
+  .actions .danger{color:var(--red);border-color:#f3c3c1}
+
+  .add{width:100%;border:2px dashed var(--green2);color:var(--green2);background:#fff;border-radius:16px;
+    padding:14px;font-size:16px;font-weight:700;margin:4px 0 12px}
+  .toggle{display:block;margin:4px auto 12px;background:none;border:0;color:var(--muted);text-decoration:underline;font-size:14px}
+
+  /* save bar */
+  .savebar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);
+    padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(0,0,0,.08)}
+  .savebar .in{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center}
+  .savebar .cnt{flex:1;font-size:14px;color:var(--muted)}
+  .savebar button{border:0;border-radius:12px;padding:13px 22px;font-size:17px;font-weight:700;background:var(--green2);color:#fff}
+  .savebar button:disabled{background:#b8c4be}
+
+  /* picker sheet */
+  .sheet{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.4);display:flex;align-items:flex-end}
+  .sheet .box{background:#fff;width:100%;max-width:640px;margin:0 auto;height:88vh;border-radius:20px 20px 0 0;
+    display:flex;flex-direction:column;overflow:hidden}
+  .sheet .hd{padding:14px 16px 8px;display:flex;align-items:center;gap:10px}
+  .sheet .hd b{flex:1;font-size:17px}
+  .sheet .hd button{border:0;background:#eef1ef;border-radius:10px;padding:8px 14px}
+  .sheet .sr{padding:0 16px 10px}
+  .sheet .sr input{width:100%;padding:13px;border:1.5px solid var(--line);border-radius:12px;font-size:17px}
+  .sheet ul{list-style:none;margin:0;padding:0 8px 24px;overflow-y:auto;flex:1}
+  .sheet li button{width:100%;text-align:right;border:0;background:none;padding:13px 12px;border-bottom:1px solid #f0f2f1;
+    font-size:17px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .sheet li button.cur{background:#e8f3ee;font-weight:700}
+  .sheet li .busy{font-size:12px;color:var(--amber);background:#fff2d9;border-radius:20px;padding:2px 8px;white-space:nowrap}
+  .sheet li.clear button{color:var(--red)}
+  .sheet .none{padding:20px;text-align:center;color:var(--muted)}
+
+  .toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:60;background:#17201c;color:#fff;
+    padding:12px 18px;border-radius:12px;font-size:15px;max-width:90vw;text-align:center}
+  .loading{text-align:center;color:var(--muted);padding:40px 0}
+  .demo{background:#fff2d9;color:var(--amber);text-align:center;font-size:13px;padding:6px}
+</style>
+</head>
+<body>
+
+<div id="demoBanner" class="demo hidden">نسخة تجريبية – لا يتم الحفظ في الملف</div>
+
+<!-- PIN -->
+<section id="scrPin" class="hero hidden">
+  <img class="logo" src="../reply/logo.png" alt="LFA">
+  <h1>لجنة الحكام</h1>
+  <p class="sub">الاتحاد اللبناني لكرة القدم – تعيينات الحكام</p>
+  <div class="panel">
+    <label for="pin">رمز الدخول</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••••">
+    <div class="err" id="pinErr"></div>
+    <button class="btn" id="pinBtn">دخول</button>
+  </div>
+</section>
+
+<!-- HOME -->
+<section id="scrHome" class="hero hidden">
+  <img class="logo" src="../reply/logo.png" alt="LFA">
+  <h1>تعيينات الحكام</h1>
+  <p class="sub">الاتحاد اللبناني لكرة القدم – لجنة الحكام</p>
+  <div class="panel">
+    <label for="div">اختر الدرجة</label>
+    <select id="div"><option value="">— الدرجة —</option></select>
+    <div class="err" id="homeErr"></div>
+    <button class="btn" id="openBtn" disabled>عرض المباريات</button>
+  </div>
+  <button class="link" id="logout">تسجيل الخروج</button>
+</section>
+
+<!-- LIST -->
+<section id="scrList" class="hidden">
+  <div class="bar">
+    <img src="../reply/logo.png" alt="">
+    <div class="t"><span id="tabName"></span><small id="tabSub"></small></div>
+    <button id="backBtn">رجوع</button>
+  </div>
+  <main id="list"><div class="loading">جارٍ التحميل…</div></main>
+  <div class="savebar">
+    <div class="in">
+      <div class="cnt" id="cnt">لا توجد تغييرات</div>
+      <button id="saveBtn" disabled>💾 حفظ</button>
+    </div>
+  </div>
+</section>
+
+<!-- PICKER -->
+<div id="sheet" class="sheet hidden">
+  <div class="box">
+    <div class="hd"><b id="pkTitle"></b><button id="pkClose">إغلاق</button></div>
+    <div class="sr"><input id="pkSearch" type="search" placeholder="ابحث بالاسم…" autocomplete="off"></div>
+    <ul id="pkList"></ul>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+/* ======== الإعدادات ======== */
+const API = 'PASTE_WEB_APP_URL_HERE';
+const DEMO = /[?&]demo=1/.test(location.search) || API.indexOf('PASTE_') === 0;
+
+const DAYS = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const INFO = 6; // المرحلة، التاريخ، الساعة، المضيف، الضيف، الملعب
+const ASSESSOR = 'مراقب الحكام';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const S = { pin:'', meta:null, tab:'', data:null, items:[], showPast:false, seq:0 };
+
+/* ======== الاتصال ======== */
+async function api(body){
+  if (DEMO) return demoApi(body);
+  body.pin = S.pin;
+  const r = await fetch(API, { method:'POST', credentials:'omit', redirect:'follow',
+    headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body) });
+  return r.json();
+}
+function store(k, v){ try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); }catch(e){} }
+function load(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
+
+/* ======== التاريخ ======== */
+function toISO(s){
+  const m = String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  return m ? m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0') : '';
+}
+function fromISO(iso){
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return DAYS[dt.getDay()] + ' ' + String(d).padStart(2,'0') + '/' + String(m).padStart(2,'0') + '/' + y;
+}
+function todayISO(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function shortDate(s){ const i = toISO(s); if(!i) return s || 'بدون تاريخ'; const p = s.split(' '); return (p.length>1? p[0]+' ':'') + i.slice(8)+'/'+i.slice(5,7); }
+const norm = s => String(s||'').replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim();
+
+/* ======== الشاشات ======== */
+function show(id){ ['scrPin','scrHome','scrList'].forEach(s => $(s).classList.toggle('hidden', s !== id)); window.scrollTo(0,0); }
+function toast(msg, ms){ const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hidden'), ms || 3000); }
+
+async function start(){
+  if (DEMO) $('demoBanner').classList.remove('hidden');
+  S.pin = load('lfa_pin');
+  if (!S.pin && !DEMO){ show('scrPin'); return; }
+  await enter();
+}
+
+async function enter(){
+  show('scrHome');
+  $('homeErr').textContent = 'جارٍ التحميل…';
+  try{
+    const m = await api({ op:'meta' });
+    if (!m.ok){
+      if (m.err === 'pin'){ store('lfa_pin', null); S.pin=''; show('scrPin'); $('pinErr').textContent = 'رمز الدخول غير صحيح'; return; }
+      throw new Error(m.err);
+    }
+    S.meta = m;
+    const sel = $('div');
+    sel.innerHTML = '<option value="">— الدرجة —</option>' + m.tabs.map(t => `<option>${esc(t)}</option>`).join('');
+    $('homeErr').textContent = '';
+    const want = (location.hash||'').slice(1);
+    if (want && m.tabs.indexOf(decodeURIComponent(want)) >= 0){ openTab(decodeURIComponent(want), true); }
+  }catch(e){ $('homeErr').textContent = 'تعذّر الاتصال، حاول مجدداً.'; }
+}
+
+$('pinBtn').onclick = async () => {
+  const v = $('pin').value.trim();
+  if (!v){ $('pinErr').textContent = 'أدخل رمز الدخول'; return; }
+  $('pinBtn').disabled = true; $('pinErr').textContent = '';
+  S.pin = v;
+  try{
+    const r = await api({ op:'ping' });
+    if (r.ok){ store('lfa_pin', v); $('pin').value=''; await enter(); }
+    else $('pinErr').textContent = r.err === 'pin' ? 'رمز الدخول غير صحيح' : 'حدث خطأ، حاول مجدداً';
+  }catch(e){ $('pinErr').textContent = 'تعذّر الاتصال، حاول مجدداً'; }
+  $('pinBtn').disabled = false;
+};
+$('pin').addEventListener('keydown', e => { if (e.key === 'Enter') $('pinBtn').click(); });
+$('logout').onclick = () => { store('lfa_pin', null); S.pin=''; show('scrPin'); };
+$('div').onchange = () => { $('openBtn').disabled = !$('div').value; if ($('div').value) $('openBtn').click(); };
+$('openBtn').onclick = () => openTab($('div').value);
+
+$('backBtn').onclick = () => { if (confirmLeave()) { history.replaceState(null,'',location.pathname+location.search); goHome(); } };
+window.addEventListener('popstate', () => { if (!$('scrList').classList.contains('hidden')){ if (confirmLeave()) goHome(); else history.pushState(null,'','#'+encodeURIComponent(S.tab)); } });
+window.addEventListener('beforeunload', e => { if (changeCount()){ e.preventDefault(); e.returnValue=''; } });
+function confirmLeave(){ return !changeCount() || confirm('لديك تغييرات غير محفوظة. هل تريد الخروج بدون حفظ؟'); }
+function goHome(){ S.items = []; S.tab=''; $('div').value=''; $('openBtn').disabled = true; show('scrHome'); }
+
+/* ======== تحميل التبويب ======== */
+async function openTab(tab, fromHash){
+  S.tab = tab; S.showPast = false;
+  if (!fromHash) history.pushState(null,'','#'+encodeURIComponent(tab));
+  $('tabName').textContent = tab; $('tabSub').textContent = '';
+  $('list').innerHTML = '<div class="loading">جارٍ التحميل…</div>';
+  show('scrList');
+  await reload();
+}
+
+async function reload(){
+  try{
+    const d = await api({ op:'list', tab:S.tab });
+    if (!d.ok) throw new Error(d.err);
+    S.data = d;
+    S.items = d.rows.map(x => ({ key:'r'+x.r, r:x.r, o:x.v.slice(), v:x.v.slice(), del:false, open:false }));
+    const rounds = [...new Set(d.rows.map(x => x.v[0]).filter(Boolean))];
+    $('tabSub').textContent = (rounds.length ? 'المرحلة ' + rounds.join('، ') + ' · ' : '') + d.rows.length + ' مباريات';
+    render();
+  }catch(e){
+    $('list').innerHTML = '<div class="loading">تعذّر تحميل المباريات.<br><button class="btn" onclick="reload()">إعادة المحاولة</button></div>';
+  }
+}
+
+/* ======== منطق التغييرات ======== */
+const W = () => S.data.header.length;
+const col = name => S.data.header.indexOf(name);
+function isChanged(it){ return it.r ? (it.del || it.v.some((x,i) => String(x||'') !== String(it.o[i]||''))) : !it.del; }
+function changeCount(){ return S.items.filter(isChanged).length; }
+
+function busyFor(date, key){
+  // كل الأسماء في نفس اليوم: من التبويبات الأخرى (الخادم) + هذا التبويب (الحالة المحلية)
+  const res = [];
+  (S.data.busy[date] || []).forEach(b => { if (b.t !== S.tab) res.push(b); });
+  S.items.forEach(it => {
+    if (it.del || it.v[1] !== date) return;
+    S.data.roles.forEach(role => {
+      const n = it.v[col(role)];
+      if (n) res.push({ n, t:S.tab, key:it.key, role, tm:it.v[2], m:(it.v[3]||'؟')+' × '+(it.v[4]||'؟') });
+    });
+  });
+  return res;
+}
+function clashes(it, role){
+  const n = it.v[col(role)];
+  if (!n || !it.v[1]) return [];
+  return busyFor(it.v[1]).filter(b => norm(b.n) === norm(n) && !(b.key === it.key && b.role === role));
+}
+function nameKnown(role, n){
+  if (!n) return true;
+  const list = role === ASSESSOR ? S.meta.assessors.concat(S.meta.refs) : S.meta.refs;
+  return list.some(x => norm(x) === norm(n));
+}
+
+/* ======== الرسم ======== */
+function sortKey(it){ return (toISO(it.v[1]) || '9999') + ' ' + (it.v[2] || '99:99'); }
+
+function render(){
+  const today = todayISO();
+  const items = S.items.slice().sort((a,b) => (a.r ? 0 : 1) - (b.r ? 0 : 1) || sortKey(a).localeCompare(sortKey(b)));
+  const past = items.filter(it => it.r && toISO(it.v[1]) && toISO(it.v[1]) < today && !isChanged(it));
+  const shown = S.showPast ? items : items.filter(it => past.indexOf(it) < 0);
+  let h = '';
+  if (!shown.length) h += '<div class="info">لا توجد مباريات قادمة في هذه الدرجة. اضغط «إضافة مباراة» لإضافة مباراة جديدة.</div>';
+  else h += '<div class="info">اضغط على المباراة لتعديل التعيينات، ثم اضغط «حفظ» في الأسفل.</div>';
+  shown.forEach(it => h += card(it, past.indexOf(it) >= 0));
+  if (past.length) h += `<button class="toggle" onclick="S.showPast=!S.showPast;render()">${S.showPast ? 'إخفاء' : 'إظهار'} المباريات المنتهية (${past.length})</button>`;
+  h += '<button class="add" onclick="addMatch()">＋ إضافة مباراة</button>';
+  $('list').innerHTML = h;
+  updateBar();
+}
+
+function card(it, isPast){
+  const v = it.v, roles = S.data.roles;
+  const cls = ['card', it.del ? 'del' : (!it.r ? 'isnew' : (isChanged(it) ? 'changed' : '')), isPast ? 'past' : ''].join(' ');
+  const missing = roles.filter(r => !v[col(r)]).length;
+  const clashN = roles.filter(r => clashes(it, r).length).length;
+  let tags = '';
+  if (it.del) tags += '<span class="tag bad">سيتم الحذف</span>';
+  else if (!it.r) tags += '<span class="tag blue">مباراة جديدة</span>';
+  else if (isChanged(it)) tags += '<span class="tag warn">تعديل غير محفوظ</span>';
+  if (isPast) tags += '<span class="tag">منتهية</span>';
+  tags += missing ? `<span class="tag warn">ناقص ${missing}</span>` : '<span class="tag">الطاقم مكتمل ✓</span>';
+  if (clashN) tags += `<span class="tag bad">⚠️ تعيين مزدوج</span>`;
+
+  let crew = '';
+  if (!it.open) crew = '<div class="crew">' + roles.map(r => `<div><span>${esc(r)}</span><span class="${v[col(r)] ? '' : 'empty'}">${esc(v[col(r)] || '—')}</span></div>`).join('') + '</div>';
+
+  let body = '';
+  if (it.open){
+    const k = it.key;
+    body = `<div class="body">
+      <div class="sec">معلومات المباراة</div>
+      <div class="row2">
+        <div class="f"><label>المرحلة</label><input inputmode="numeric" value="${esc(v[0])}" oninput="setv('${k}',0,this.value,true)"></div>
+        <div class="f"><label>الساعة</label><input type="time" value="${esc(v[2])}" onchange="setv('${k}',2,this.value)"></div>
+      </div>
+      <div class="f"><label>التاريخ</label><input type="date" value="${toISO(v[1])}" onchange="setv('${k}',1,fromISO(this.value))"></div>
+      ${pickField(it, 3, 'الفريق المضيف', 'team')}
+      ${pickField(it, 4, 'الفريق الضيف', 'team')}
+      ${pickField(it, 5, 'الملعب', 'stadium')}
+      <div class="sec">طاقم التحكيم</div>
+      ${roles.map(r => pickField(it, col(r), r, r === ASSESSOR ? 'assessor' : 'ref')).join('')}
+      <div class="actions">
+        <button onclick="toggle('${k}')">إغلاق</button>
+        ${it.r && isChanged(it) && !it.del ? `<button onclick="undo('${k}')">↺ تراجع</button>` : ''}
+        <button class="danger" onclick="delMatch('${k}')">${it.del ? 'إلغاء الحذف' : '🗑 حذف المباراة'}</button>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="${cls}" id="c_${it.key}">
+    <div class="sum" onclick="toggle('${it.key}')">
+      <span class="chev">${it.open ? '▲' : 'تعديل ▼'}</span>
+      <div class="when"><span>📅 ${esc(shortDate(v[1]))}</span><span>🕒 ${esc(v[2] || '—')}</span>${v[0] ? `<span>المرحلة ${esc(v[0])}</span>` : ''}</div>
+      <div class="teams">${esc(v[3] || 'الفريق المضيف')} × ${esc(v[4] || 'الفريق الضيف')}</div>
+      <div class="venue">📍 ${esc(v[5] || 'الملعب غير محدد')}</div>
+      <div class="tags">${tags}</div>
+      ${crew}
+    </div>${body}</div>`;
+}
+
+function pickField(it, c, label, kind){
+  const n = it.v[c];
+  let cls = 'f', note = '';
+  if (kind === 'ref' || kind === 'assessor'){
+    const cl = clashes(it, label);
+    if (cl.length){ cls += ' bad'; note = '<div class="note bad">⚠️ معيّن أيضاً في نفس اليوم: ' + cl.map(b => esc(b.m + ' (' + b.t + '، ' + (b.tm||'') + ' – ' + b.role + ')')).join('؛ ') + '</div>'; }
+    else if (n && !nameKnown(label, n)){ cls += ' warn'; note = '<div class="note warn">الاسم غير موجود في قائمة الحكام</div>'; }
+  }
+  return `<div class="${cls}"><label>${esc(label)}</label>
+    <button class="pick" onclick="openPicker('${it.key}',${c},'${kind}')">${n ? esc(n) : '<span class="ph">اختر…</span>'}</button>${note}</div>`;
+}
+
+function updateBar(){
+  const n = changeCount();
+  $('cnt').textContent = n ? (n === 1 ? 'تغيير واحد غير محفوظ' : n + ' تغييرات غير محفوظة') : 'لا توجد تغييرات';
+  $('saveBtn').disabled = !n;
+}
+
+/* ======== الأفعال ======== */
+const find = k => S.items.find(x => x.key === k);
+function toggle(k){ const it = find(k); it.open = !it.open; render(); if (it.open) setTimeout(() => $('c_'+k).scrollIntoView({behavior:'smooth', block:'start'}), 30); }
+function setv(k, c, val, quiet){ const it = find(k); it.v[c] = val; if (quiet){ updateBar(); return; } render(); }
+function undo(k){ const it = find(k); it.v = it.o.slice(); render(); }
+function delMatch(k){
+  const it = find(k);
+  if (!it.r){ if (confirm('حذف هذه المباراة الجديدة؟')){ S.items = S.items.filter(x => x !== it); render(); } return; }
+  if (!it.del && !confirm('سيتم حذف هذه المباراة من الجدول عند الضغط على «حفظ». متابعة؟')) return;
+  it.del = !it.del; render();
+}
+function addMatch(){
+  const last = S.items.filter(x => !x.del).slice(-1)[0];
+  const v = new Array(W()).fill('');
+  if (last) v[0] = last.v[0];
+  const it = { key:'n'+(++S.seq), r:null, o:null, v, del:false, open:true };
+  S.items.push(it); render();
+  setTimeout(() => $('c_'+it.key).scrollIntoView({behavior:'smooth', block:'start'}), 30);
+}
+
+/* ======== قائمة الاختيار ======== */
+let PK = null;
+function openPicker(k, c, kind){
+  const it = find(k);
+  let opts, title = S.data.header[c];
+  if (kind === 'team'){ opts = (S.meta.teams[S.tab] || []).slice(); if (!opts.length) opts = [...new Set(Object.values(S.meta.teams).flat())]; }
+  else if (kind === 'stadium') opts = S.meta.stadiums.slice();
+  else if (kind === 'assessor') opts = S.meta.assessors.slice();
+  else opts = S.meta.refs.slice();
+  PK = { k, c, kind, opts };
+  $('pkTitle').textContent = title;
+  $('pkSearch').value = '';
+  $('sheet').classList.remove('hidden');
+  drawPicker();
+  if (window.innerWidth > 700) $('pkSearch').focus();
+}
+function drawPicker(){
+  const it = find(PK.k), cur = it.v[PK.c], q = norm($('pkSearch').value);
+  const isPerson = PK.kind === 'ref' || PK.kind === 'assessor';
+  let pool = PK.opts;
+  if (PK.kind === 'assessor' && q) pool = pool.concat(S.meta.refs.filter(x => pool.indexOf(x) < 0));
+  const list = pool.filter(x => !q || norm(x).indexOf(q) >= 0);
+  const busy = isPerson && it.v[1] ? busyFor(it.v[1]) : [];
+  let h = '';
+  if (cur) h += `<li class="clear"><button onclick="pickVal('')">✕ إزالة «${esc(cur)}»</button></li>`;
+  list.forEach(x => {
+    const b = busy.filter(z => norm(z.n) === norm(x) && !(z.key === it.key && z.role === S.data.header[PK.c]));
+    h += `<li><button class="${x === cur ? 'cur' : ''}" data-v="${esc(x)}"><span>${esc(x)}</span>${b.length ? `<span class="busy">مُعيَّن اليوم: ${esc(b[0].m)}</span>` : ''}</button></li>`;
+  });
+  if (!list.length) h += '<li class="none">لا يوجد اسم مطابق. أسماء الحكام تُضاف في ورقة Master list، والفرق والملاعب في ورقة القوائم.</li>';
+  $('pkList').innerHTML = h;
+  $('pkList').querySelectorAll('button[data-v]').forEach(b => b.onclick = () => pickVal(b.getAttribute('data-v')));
+}
+function pickVal(v){ const it = find(PK.k); it.v[PK.c] = v; closePicker(); render(); }
+function closePicker(){ $('sheet').classList.add('hidden'); PK = null; }
+$('pkSearch').oninput = drawPicker;
+$('pkClose').onclick = closePicker;
+$('sheet').onclick = e => { if (e.target === $('sheet')) closePicker(); };
+
+/* ======== الحفظ ======== */
+$('saveBtn').onclick = async () => {
+  const todo = S.items.filter(isChanged);
+  const bad = todo.filter(it => !it.del && !(it.v[1] && it.v[2] && it.v[3] && it.v[4] && it.v[5]));
+  if (bad.length){
+    bad.forEach(it => it.open = true); render();
+    alert('يرجى إكمال التاريخ والساعة والفريقين والملعب لكل مباراة قبل الحفظ.');
+    return;
+  }
+  const dbl = todo.filter(it => !it.del && S.data.roles.some(r => clashes(it, r).length));
+  if (dbl.length && !confirm('يوجد حكام معيّنون في أكثر من مباراة في نفس اليوم. هل تريد الحفظ رغم ذلك؟')) return;
+
+  const payload = { op:'save', tab:S.tab,
+    changes: todo.filter(it => it.r && !it.del).map(it => ({ r:it.r, o:it.o, v:it.v })),
+    adds:    todo.filter(it => !it.r).map(it => ({ v:it.v })),
+    deletes: todo.filter(it => it.r && it.del).map(it => ({ r:it.r, o:it.o })) };
+  $('saveBtn').disabled = true; $('saveBtn').textContent = 'جارٍ الحفظ…';
+  try{
+    const r = await api(payload);
+    if (!r.ok) throw new Error(r.err);
+    if (r.conflicts && r.conflicts.length) alert('تم حفظ باقي التغييرات، لكن ' + r.conflicts.length + ' مباراة عدّلها شخص آخر في نفس الوقت فلم تُحفظ. ستظهر الآن آخر نسخة، أعد تعديلها إذا لزم.');
+    else toast('تم الحفظ ✅');
+    await reload();
+  }catch(e){
+    alert('لم يتم الحفظ. تأكد من الاتصال بالإنترنت ثم حاول مجدداً.');
+  }
+  $('saveBtn').textContent = '💾 حفظ';
+  updateBar();
+};
+
+/* ======== نسخة تجريبية ======== */
+function demoApi(b){
+  const D = window.__demo || (window.__demo = {
+    meta:{ ok:true, tabs:['الدرجة الأولى','الدرجة الثانية','تحت ال20','تحت ال17','تحت ال15'],
+      refs:['أحمد كمال','أيمن حسن','إبراهيم حوحو','حسين أبو يحيى','خضر الخضر','داني تحومي','ربيع عميرات','سليم سراج','عباس شلهوب','علي رضا','علي فقيه','علي مبارك','فاروق دمج','كاظم الخنسا','محمد شمعة','محمد عيسى عيسى','وائل حيدر'],
+      assessors:['احمد دمج','بلال الزين','سامر السيد قاسم','فؤاد عكاشة','محمد المولى','محمد حوماني'],
+      stadiums:['الشانفيل','الشرق','سن الفيل','صور البلدي','العهد'],
+      teams:{'تحت ال15':['اتلتيكو','الشباب الهري','الشرق','توفير','سنحريب','الصفاء','الحكمة','جويا'],'الدرجة الأولى':['التضامن صور','العهد','النجمة','الحكمة'],'الدرجة الثانية':[],'تحت ال20':[],'تحت ال17':[]} },
+    tabs:{
+      'تحت ال15':{ header:['المرحلة','التاريخ','الساعة','الفريق المضيف','الفريق الضيف','الملعب','الحكم','المساعد الأول','المساعد الثاني','مراقب الحكام'],
+        rows:[{r:6,v:['7','الأحد 29/11/2026','10:00','سنحريب','الصفاء','الشرق','علي مبارك','','','فؤاد عكاشة']},
+              {r:7,v:['7','الأحد 29/11/2026','12:00','الشرق','توفير','الشرق','عباس شلهوب','','','فؤاد عكاشة']},
+              {r:8,v:['7','الأحد 29/11/2026','12:00','اتلتيكو','الشباب الهري','الشانفيل','فاروق دمج','إبراهيم حوحو','محمد شمعة','']}] },
+      'الدرجة الأولى':{ header:['المرحلة','التاريخ','الساعة','الفريق المضيف','الفريق الضيف','الملعب','الحكم','المساعد الأول','المساعد الثاني','الحكم الرابع','VAR','AVAR','RO','مراقب الحكام'],
+        rows:[{r:6,v:['8','الأحد 29/11/2026','14:15','النجمة','الحكمة','مدينة كميل شمعون الرياضية','وائل حيدر','','','','علي رضا','ربيع عميرات','كاظم الخنسا','محمد المولى']}] }
+    }});
+  const wait = x => new Promise(res => setTimeout(() => res(JSON.parse(JSON.stringify(x))), 250));
+  if (b.op === 'meta') return wait(D.meta);
+  if (b.op === 'list'){
+    const t = D.tabs[b.tab] || { header:['المرحلة','التاريخ','الساعة','الفريق المضيف','الفريق الضيف','الملعب','الحكم','المساعد الأول','المساعد الثاني','مراقب الحكام'], rows:[] };
+    const busy = {};
+    Object.entries(D.tabs).forEach(([tn, tt]) => tt.rows.forEach(m => tt.header.forEach((h,c) => { if (c >= INFO && m.v[c]) (busy[m.v[1]] = busy[m.v[1]] || []).push({ n:m.v[c], t:tn, r:m.r, role:h, tm:m.v[2], m:m.v[3]+' × '+m.v[4] }); })));
+    return wait({ ok:true, tab:b.tab, header:t.header, roles:t.header.slice(INFO), rows:t.rows, busy });
+  }
+  if (b.op === 'save'){
+    const t = D.tabs[b.tab] || (D.tabs[b.tab] = { header:['المرحلة','التاريخ','الساعة','الفريق المضيف','الفريق الضيف','الملعب','الحكم','المساعد الأول','المساعد الثاني','مراقب الحكام'], rows:[] });
+    b.changes.forEach(c => { const row = t.rows.find(x => x.r === c.r); if (row) row.v = c.v; });
+    let next = t.rows.length ? Math.max(...t.rows.map(x => x.r)) + 1 : 6;
+    b.adds.forEach(a => t.rows.push({ r:next++, v:a.v }));
+    t.rows = t.rows.filter(x => !b.deletes.some(d => d.r === x.r));
+    return wait({ ok:true, conflicts:[] });
+  }
+  return wait({ ok:true });
+}
+
+start();
+</script>
+</body>
+</html>
