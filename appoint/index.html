@@ -159,7 +159,18 @@
     <div class="err" id="homeErr"></div>
     <button class="btn" id="openBtn" disabled>عرض المباريات</button>
   </div>
+  <button class="btn hidden" id="logBtn" style="max-width:420px;background:#fff;color:var(--green2);border:2px solid #fff">📋 سجل التعديلات</button>
   <button class="link" id="logout">تسجيل الخروج</button>
+</section>
+
+<!-- LOG (admins) -->
+<section id="scrLog" class="hidden">
+  <div class="bar">
+    <img src="../reply/logo.png" alt="">
+    <div class="t">سجل التعديلات<small>من عدّل ماذا ومتى</small></div>
+    <button id="logBack">رجوع</button>
+  </div>
+  <main id="logList"><div class="loading">جارٍ التحميل…</div></main>
 </section>
 
 <!-- LIST -->
@@ -229,7 +240,7 @@ function shortDate(s){ const i = toISO(s); if(!i) return s || 'بدون تاري
 const norm = s => String(s||'').replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim();
 
 /* ======== الشاشات ======== */
-function show(id){ ['scrPin','scrHome','scrList'].forEach(s => $(s).classList.toggle('hidden', s !== id)); window.scrollTo(0,0); }
+function show(id){ ['scrPin','scrHome','scrList','scrLog'].forEach(s => $(s).classList.toggle('hidden', s !== id)); window.scrollTo(0,0); }
 function toast(msg, ms){ const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hidden'), ms || 3000); }
 
 async function start(){
@@ -246,7 +257,7 @@ function toLogin(msg){
   $('emailErr').textContent = msg || '';
   show('scrPin');
 }
-const ERR = { notmember:'هذا البريد غير مسجّل في لائحة أعضاء اللجنة.', wait:'تم إرسال عدة رموز. انتظر 15 دقيقة ثم حاول مجدداً.',
+const ERR = { forbidden:'غير مسموح.', notmember:'هذا البريد غير مسجّل في لائحة أعضاء اللجنة.', wait:'تم إرسال عدة رموز. انتظر 15 دقيقة ثم حاول مجدداً.',
   badcode:'الرمز غير صحيح، حاول مجدداً.', expired:'انتهت صلاحية الرمز. اضغط «إعادة إرسال الرمز».' };
 
 async function sendCode(){
@@ -297,6 +308,7 @@ async function enter(){
     }
     S.meta = m;
     if (m.user){ store('lfa_name', m.user); $('hello').textContent = 'مرحباً، ' + m.user; }
+    $('logBtn').classList.toggle('hidden', !m.admin);
     const sel = $('div');
     sel.innerHTML = '<option value="">— الدرجة —</option>' + m.tabs.map(t => `<option>${esc(t)}</option>`).join('');
     $('homeErr').textContent = '';
@@ -305,6 +317,25 @@ async function enter(){
   }catch(e){ $('homeErr').textContent = 'تعذّر الاتصال، حاول مجدداً.'; }
 }
 
+$('logBtn').onclick = openLog;
+$('logBack').onclick = () => show('scrHome');
+async function openLog(){
+  show('scrLog');
+  $('logList').innerHTML = '<div class="loading">جارٍ التحميل…</div>';
+  try{
+    const r = await api({ op:'log' });
+    if (!r.ok){ if (r.err === 'auth'){ toLogin('انتهت جلسة الدخول، سجّل الدخول مجدداً.'); return; } throw new Error(r.err); }
+    const f = $('logFilter') ? $('logFilter').value : '';
+    if (!r.rows.length){ $('logList').innerHTML = '<div class="info">لا توجد تعديلات بعد.</div>'; return; }
+    $('logList').innerHTML = '<div class="info">آخر ' + r.rows.length + ' تعديل (الأحدث أولاً).</div>' + r.rows.map(x => `
+      <div class="card"><div class="sum" style="cursor:default">
+        <div class="when"><span>🕒 ${esc(x[0])}</span><span>👤 ${esc(x[1])}</span></div>
+        <div class="teams" style="font-size:16px">${esc(x[4])}</div>
+        <div class="venue">${esc(x[3])}</div>
+        <div class="crew" style="white-space:pre-line">${esc(x[5])}</div>
+      </div></div>`).join('');
+  }catch(e){ $('logList').innerHTML = '<div class="loading">تعذّر تحميل السجل.</div>'; }
+}
 $('logout').onclick = async () => { try{ await api({ op:'logout' }); }catch(e){} toLogin(); };
 $('div').onchange = () => { $('openBtn').disabled = !$('div').value; if ($('div').value) $('openBtn').click(); };
 $('openBtn').onclick = () => openTab($('div').value);
@@ -563,7 +594,8 @@ function demoApi(b){
   const wait = x => new Promise(res => setTimeout(() => res(JSON.parse(JSON.stringify(x))), 250));
   if (b.op === 'sendcode') return wait(b.email.indexOf('@') > 0 ? { ok:true } : { ok:false, err:'notmember' });
   if (b.op === 'verify') return wait(b.code === '123456' ? { ok:true, token:'demo', user:'عضو تجريبي' } : { ok:false, err:'badcode' });
-  if (b.op === 'meta') return wait(Object.assign({ user:'عضو تجريبي' }, D.meta));
+  if (b.op === 'meta') return wait(Object.assign({ user:'عضو تجريبي', admin:true }, D.meta));
+  if (b.op === 'log') return wait({ ok:true, rows:[['2026-11-27 22:10','Ali Rida','aliredaalireda26@hotmail.com','تحت ال15','اتلتيكو × الشباب الهري (الأحد 29/11/2026، 12:00)','المساعد الأول: أحمد عبيد ← إبراهيم حوحو\nمراقب الحكام: احمد حموضة ← —']] });
   if (b.op === 'list'){
     const t = D.tabs[b.tab] || { header:['المرحلة','التاريخ','الساعة','الفريق المضيف','الفريق الضيف','الملعب','الحكم','المساعد الأول','المساعد الثاني','مراقب الحكام'], rows:[] };
     const busy = {};
