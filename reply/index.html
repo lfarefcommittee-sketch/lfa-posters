@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>لجنة الحكام – الرد على التعيين</title>
+<style>
+  body { margin:0; background:#f2f4f7; font-family: Arial, Tahoma, sans-serif; color:#202124; }
+  .wrap { max-width:520px; margin:0 auto; padding:16px; }
+  .card { background:#fff; border-radius:12px; padding:18px; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  h1 { font-size:19px; margin:0 0 4px; }
+  .sub { color:#5f6368; font-size:14px; margin-bottom:14px; }
+  .row { display:flex; gap:8px; padding:7px 0; border-bottom:1px solid #eee; font-size:15px; }
+  .row b { min-width:92px; color:#5f6368; font-weight:normal; }
+  .role { margin:14px 0 4px; font-size:17px; font-weight:bold; }
+  .prev { background:#fff4e5; color:#8a4b00; border-radius:8px; padding:10px; margin-top:14px; font-size:14px; display:none; }
+  label { display:block; margin-top:16px; font-weight:bold; font-size:16px; color:#c5221f; }
+  textarea { width:100%; box-sizing:border-box; min-height:110px; margin-top:8px; padding:10px;
+             font-size:16px; font-family:inherit; border:1px solid #c9c9c9; border-radius:8px; }
+  button { width:100%; margin-top:16px; padding:14px; border:0; border-radius:8px; color:#fff;
+           font-size:18px; font-weight:bold; cursor:pointer; }
+  .ok-btn { background:#1e8e3e; } .no-btn { background:#c5221f; }
+  button:disabled { opacity:.6; }
+  .msg { margin-top:16px; padding:14px; border-radius:8px; font-size:16px; display:none; text-align:center; }
+  .msg.ok { background:#e6f4ea; color:#1e8e3e; } .msg.err { background:#fce8e6; color:#c5221f; }
+  .foot { text-align:center; color:#80868b; font-size:13px; margin-top:14px; }
+  .hide { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="bad">
+    <h1>الرابط غير صالح</h1>
+    <div class="sub">يُرجى استخدام الزر الموجود في رسالة التعيين كما هو، أو التواصل مع لجنة الحكام.</div>
+  </div>
+
+  <div class="card hide" id="main">
+    <h1 id="head"></h1>
+    <div class="sub" id="name"></div>
+    <div class="row"><b>المسابقة</b><span id="comp"></span></div>
+    <div class="row"><b>المباراة</b><span id="match"></span></div>
+    <div class="row"><b>التاريخ</b><span id="date"></span></div>
+    <div class="row"><b>الساعة</b><span id="time"></span></div>
+    <div class="row"><b>الملعب</b><span id="venue"></span></div>
+    <div class="role">مهمتكم: <span id="role" dir="auto"></span></div>
+    <div class="prev" id="prev"></div>
+    <div id="form">
+      <div id="reasonBox" class="hide">
+        <label for="reason">✍️ السبب (إلزامي)</label>
+        <textarea id="reason" maxlength="500" placeholder="يُرجى كتابة سبب الاعتذار هنا"></textarea>
+      </div>
+      <button id="send"></button>
+    </div>
+    <div id="msg" class="msg"></div>
+  </div>
+  <div class="foot">لجنة الحكام – الاتحاد اللبناني لكرة القدم</div>
+</div>
+
+<script>
+{
+  // Committee's Google Apps Script web app (saves the replies)
+  const API = 'https://script.google.com/macros/s/AKfycbzQfLC6DN7_bOFKWDaCFZGi1_ub6liY9gRXfZgbUbQjvUa49KsRfQ01kMLV5CyTLjB5/exec';
+
+  const q = new URLSearchParams(location.search);
+  const A = q.get('a'), D = q.get('d'), S = q.get('s');
+  const $ = id => document.getElementById(id);
+  const msg = $('msg'), btn = $('send');
+  function show(t, ok) { msg.textContent = t; msg.className = 'msg ' + (ok ? 'ok' : 'err'); msg.style.display = 'block'; }
+
+  function decode(d) {
+    const b = atob(d.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = Uint8Array.from(b, c => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+  }
+  function call(op, reason) {
+    const u = API + '?api=1&op=' + op + '&a=' + encodeURIComponent(A) + '&d=' + encodeURIComponent(D) +
+              '&s=' + encodeURIComponent(S) + (reason ? '&reason=' + encodeURIComponent(reason) : '');
+    return fetch(u, { credentials: 'omit' }).then(r => r.json());
+  }
+
+  let p = null;
+  try { if ((A === 'c' || A === 'x') && D && S) p = decode(D); } catch (e) { p = null; }
+
+  if (p) {
+    $('bad').classList.add('hide');
+    $('main').classList.remove('hide');
+    $('head').textContent = A === 'c' ? '✅ تأكيد الحضور' : '❌ الاعتذار عن الحضور';
+    $('name').textContent = p.n || '';
+    $('comp').textContent = p.c || '';
+    $('match').textContent = p.m || '';
+    $('date').textContent = p.dt || '';
+    $('time').textContent = (p.t || '') + ' (بتوقيت بيروت)';
+    $('venue').textContent = p.v || '';
+    $('role').textContent = p.r || '';
+    const label = A === 'x' ? 'إرسال الاعتذار' : '✅ أؤكد حضوري';
+    btn.textContent = label;
+    btn.className = A === 'x' ? 'no-btn' : 'ok-btn';
+    if (A === 'x') $('reasonBox').classList.remove('hide');
+
+    call('check').then(r => {
+      if (!r.ok) { $('main').classList.add('hide'); $('bad').classList.remove('hide'); return; }
+      if (r.prev) {
+        $('prev').textContent = 'سبق أن أرسلتم «' + r.prev.status + '» بتاريخ ' + r.prev.when + '. يمكنكم الإرسال مجددًا لتعديل ردكم.';
+        $('prev').style.display = 'block';
+      }
+    }).catch(() => {});
+
+    btn.addEventListener('click', () => {
+      const reason = A === 'x' ? $('reason').value.trim() : '';
+      if (A === 'x' && !reason) { show('يُرجى كتابة السبب.', false); return; }
+      btn.disabled = true; btn.textContent = 'جارٍ الإرسال…';
+      call('submit', reason).then(r => {
+        if (!r.ok) throw new Error(r.error || '');
+        $('form').style.display = 'none';
+        show(r.status === 'تأكيد' ? '✅ تم تأكيد حضوركم. شكرًا لكم.' : '✅ تم إرسال اعتذاركم إلى لجنة الحكام. شكرًا لكم.', true);
+      }).catch(err => {
+        btn.disabled = false; btn.textContent = label;
+        show('حدث خطأ: ' + (err && err.message ? err.message : 'يُرجى المحاولة مرة أخرى.'), false);
+      });
+    });
+  }
+}
+</script>
+</body>
+</html>
