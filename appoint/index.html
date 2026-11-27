@@ -396,7 +396,7 @@ function clashes(it, role){
 }
 function nameKnown(role, n){
   if (!n) return true;
-  const list = role === ASSESSOR ? S.meta.assessors.concat(S.meta.refs) : S.meta.refs;
+  const list = role === ASSESSOR ? S.meta.assessors : S.meta.refs;
   return list.some(x => norm(x) === norm(n));
 }
 
@@ -526,7 +526,6 @@ function drawPicker(){
   const it = find(PK.k), cur = it.v[PK.c], q = norm($('pkSearch').value);
   const isPerson = PK.kind === 'ref' || PK.kind === 'assessor';
   let pool = PK.opts;
-  if (PK.kind === 'assessor' && q) pool = pool.concat(S.meta.refs.filter(x => pool.indexOf(x) < 0));
   const list = pool.filter(x => !q || norm(x).indexOf(q) >= 0);
   const busy = isPerson && it.v[1] ? busyFor(it.v[1]) : [];
   let h = '';
@@ -569,7 +568,8 @@ $('saveBtn').onclick = async () => {
     else toast('تم الحفظ ✅');
     await reload();
   }catch(e){
-    alert('لم يتم الحفظ. تأكد من الاتصال بالإنترنت ثم حاول مجدداً.');
+    const msg = e && e.message && !/fetch|network|Failed|JSON/i.test(e.message) ? e.message : '';
+    alert(msg ? 'لم يتم الحفظ بسبب:\n' + msg + '\n\nأرسل صورة عن هذه الرسالة إلى Ali Mokdad.' : 'لم يتم الحفظ. تأكد من الاتصال بالإنترنت ثم حاول مجدداً.');
   }
   $('saveBtn').textContent = '💾 حفظ';
   updateBar();
