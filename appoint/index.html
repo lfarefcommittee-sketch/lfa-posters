@@ -40,6 +40,11 @@
   .btn:disabled{opacity:.45}
   .link{background:none;border:0;color:var(--muted);text-decoration:underline;margin-top:16px;font-size:14px}
   .err{color:var(--red);font-size:14px;margin-top:8px;min-height:20px}
+  .hint{font-size:14px;color:var(--muted);margin:-2px 0 10px}
+  .row-links{display:flex;justify-content:space-between}
+  .pickrow{display:flex;gap:8px}
+  .pickrow .pick{flex:1;min-width:0}
+  .x{flex:none;width:50px;border:1.5px solid #f3c3c1;background:#fff;color:var(--red);border-radius:12px;font-size:20px}
 
   /* list */
   main{padding:12px 12px 120px;max-width:640px;margin:0 auto}
@@ -127,11 +132,19 @@
   <img class="logo" src="../reply/logo.png" alt="LFA">
   <h1>لجنة الحكام</h1>
   <p class="sub">الاتحاد اللبناني لكرة القدم – تعيينات الحكام</p>
-  <div class="panel">
-    <label for="pin">رمز الدخول</label>
-    <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••••">
-    <div class="err" id="pinErr"></div>
-    <button class="btn" id="pinBtn">دخول</button>
+  <div class="panel" id="stepEmail">
+    <label for="email">البريد الإلكتروني</label>
+    <input id="email" type="email" inputmode="email" autocomplete="email" dir="ltr" placeholder="name@example.com">
+    <div class="err" id="emailErr"></div>
+    <button class="btn" id="sendBtn">إرسال رمز الدخول</button>
+  </div>
+  <div class="panel hidden" id="stepCode">
+    <label for="code">رمز الدخول</label>
+    <div class="hint" id="codeHint"></div>
+    <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" dir="ltr" placeholder="••••••" style="text-align:center;letter-spacing:8px;font-size:24px">
+    <div class="err" id="codeErr"></div>
+    <button class="btn" id="codeBtn">دخول</button>
+    <div class="row-links"><button class="link" id="resendBtn">إعادة إرسال الرمز</button><button class="link" id="changeEmail">تغيير البريد</button></div>
   </div>
 </section>
 
@@ -139,7 +152,7 @@
 <section id="scrHome" class="hero hidden">
   <img class="logo" src="../reply/logo.png" alt="LFA">
   <h1>تعيينات الحكام</h1>
-  <p class="sub">الاتحاد اللبناني لكرة القدم – لجنة الحكام</p>
+  <p class="sub" id="hello">الاتحاد اللبناني لكرة القدم – لجنة الحكام</p>
   <div class="panel">
     <label for="div">اختر الدرجة</label>
     <select id="div"><option value="">— الدرجة —</option></select>
@@ -178,7 +191,7 @@
 
 <script>
 /* ======== الإعدادات ======== */
-const API = 'https://script.google.com/macros/s/AKfycbxU3N5yXfV56sADzo2Uvmv7GaZzo8pD3fUg0yDTSnlHILzWiUZucoCuE8xmDV-TAWBy/exec';
+const API = 'https://script.google.com/macros/s/AKfycbwpyPhtVOd9raKe_9QOdA4lTlJxuv3aFNA9XX-W3XwQIs_lpHpT-gG4G-D6xJTo770B/exec';
 const DEMO = /[?&]demo=1/.test(location.search) || API.indexOf('PASTE_') === 0;
 
 const DAYS = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -187,18 +200,18 @@ const ASSESSOR = 'مراقب الحكام';
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-const S = { pin:'', meta:null, tab:'', data:null, items:[], showPast:false, seq:0 };
+const S = { token:'', email:'', meta:null, tab:'', data:null, items:[], showPast:false, seq:0 };
 
 /* ======== الاتصال ======== */
 async function api(body){
   if (DEMO) return demoApi(body);
-  body.pin = S.pin;
+  body.token = S.token;
   const r = await fetch(API, { method:'POST', credentials:'omit', redirect:'follow',
     headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body) });
   return r.json();
 }
-function store(k, v){ try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); }catch(e){} }
-function load(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
+function store(k, v){ if (DEMO) k = 'demo_' + k; try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); }catch(e){} }
+function load(k){ if (DEMO) k = 'demo_' + k; try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
 
 /* ======== التاريخ ======== */
 function toISO(s){
@@ -221,10 +234,57 @@ function toast(msg, ms){ const t = $('toast'); t.textContent = msg; t.classList.
 
 async function start(){
   if (DEMO) $('demoBanner').classList.remove('hidden');
-  S.pin = load('lfa_pin');
-  if (!S.pin && !DEMO){ show('scrPin'); return; }
+  S.token = load('lfa_tok');
+  if (!S.token){ toLogin(); return; }
   await enter();
 }
+
+function toLogin(msg){
+  S.token = ''; store('lfa_tok', null);
+  $('stepEmail').classList.remove('hidden'); $('stepCode').classList.add('hidden');
+  $('email').value = load('lfa_email');
+  $('emailErr').textContent = msg || '';
+  show('scrPin');
+}
+const ERR = { notmember:'هذا البريد غير مسجّل في لائحة أعضاء اللجنة.', wait:'تم إرسال عدة رموز. انتظر 15 دقيقة ثم حاول مجدداً.',
+  badcode:'الرمز غير صحيح، حاول مجدداً.', expired:'انتهت صلاحية الرمز. اضغط «إعادة إرسال الرمز».' };
+
+async function sendCode(){
+  const e = $('email').value.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(e)){ $('emailErr').textContent = 'أدخل بريداً إلكترونياً صحيحاً'; return; }
+  $('sendBtn').disabled = true; $('resendBtn').disabled = true; $('emailErr').textContent = ''; $('codeErr').textContent = '';
+  $('sendBtn').textContent = 'جارٍ الإرسال…';
+  try{
+    const r = await api({ op:'sendcode', email:e });
+    if (r.ok){
+      S.email = e; store('lfa_email', e);
+      $('stepEmail').classList.add('hidden'); $('stepCode').classList.remove('hidden');
+      $('codeHint').innerHTML = 'أرسلنا رمزاً من 6 أرقام إلى <b dir="ltr">' + esc(e) + '</b>. تحقّق أيضاً من مجلد Spam.';
+      $('code').value = ''; $('code').focus();
+    } else {
+      const m = ERR[r.err] || 'حدث خطأ، حاول مجدداً.';
+      if ($('stepCode').classList.contains('hidden')) $('emailErr').textContent = m; else $('codeErr').textContent = m;
+    }
+  }catch(err){ $('emailErr').textContent = 'تعذّر الاتصال، حاول مجدداً.'; }
+  $('sendBtn').disabled = false; $('resendBtn').disabled = false; $('sendBtn').textContent = 'إرسال رمز الدخول';
+}
+async function verifyCode(){
+  const c = $('code').value.replace(/\D/g,'');
+  if (c.length !== 6){ $('codeErr').textContent = 'الرمز من 6 أرقام'; return; }
+  $('codeBtn').disabled = true; $('codeErr').textContent = '';
+  try{
+    const r = await api({ op:'verify', email:S.email, code:c });
+    if (r.ok){ S.token = r.token; store('lfa_tok', r.token); store('lfa_name', r.user); await enter(); }
+    else $('codeErr').textContent = ERR[r.err] || 'حدث خطأ، حاول مجدداً.';
+  }catch(err){ $('codeErr').textContent = 'تعذّر الاتصال، حاول مجدداً.'; }
+  $('codeBtn').disabled = false;
+}
+$('sendBtn').onclick = sendCode;
+$('resendBtn').onclick = sendCode;
+$('codeBtn').onclick = verifyCode;
+$('email').addEventListener('keydown', e => { if (e.key === 'Enter') sendCode(); });
+$('code').addEventListener('input', () => { if ($('code').value.replace(/\D/g,'').length === 6) verifyCode(); });
+$('changeEmail').onclick = () => { $('stepCode').classList.add('hidden'); $('stepEmail').classList.remove('hidden'); $('codeErr').textContent=''; };
 
 async function enter(){
   show('scrHome');
@@ -232,10 +292,11 @@ async function enter(){
   try{
     const m = await api({ op:'meta' });
     if (!m.ok){
-      if (m.err === 'pin'){ store('lfa_pin', null); S.pin=''; show('scrPin'); $('pinErr').textContent = 'رمز الدخول غير صحيح'; return; }
+      if (m.err === 'auth'){ toLogin('انتهت جلسة الدخول، سجّل الدخول مجدداً.'); return; }
       throw new Error(m.err);
     }
     S.meta = m;
+    if (m.user){ store('lfa_name', m.user); $('hello').textContent = 'مرحباً، ' + m.user; }
     const sel = $('div');
     sel.innerHTML = '<option value="">— الدرجة —</option>' + m.tabs.map(t => `<option>${esc(t)}</option>`).join('');
     $('homeErr').textContent = '';
@@ -244,20 +305,7 @@ async function enter(){
   }catch(e){ $('homeErr').textContent = 'تعذّر الاتصال، حاول مجدداً.'; }
 }
 
-$('pinBtn').onclick = async () => {
-  const v = $('pin').value.trim();
-  if (!v){ $('pinErr').textContent = 'أدخل رمز الدخول'; return; }
-  $('pinBtn').disabled = true; $('pinErr').textContent = '';
-  S.pin = v;
-  try{
-    const r = await api({ op:'ping' });
-    if (r.ok){ store('lfa_pin', v); $('pin').value=''; await enter(); }
-    else $('pinErr').textContent = r.err === 'pin' ? 'رمز الدخول غير صحيح' : 'حدث خطأ، حاول مجدداً';
-  }catch(e){ $('pinErr').textContent = 'تعذّر الاتصال، حاول مجدداً'; }
-  $('pinBtn').disabled = false;
-};
-$('pin').addEventListener('keydown', e => { if (e.key === 'Enter') $('pinBtn').click(); });
-$('logout').onclick = () => { store('lfa_pin', null); S.pin=''; show('scrPin'); };
+$('logout').onclick = async () => { try{ await api({ op:'logout' }); }catch(e){} toLogin(); };
 $('div').onchange = () => { $('openBtn').disabled = !$('div').value; if ($('div').value) $('openBtn').click(); };
 $('openBtn').onclick = () => openTab($('div').value);
 
@@ -280,7 +328,7 @@ async function openTab(tab, fromHash){
 async function reload(){
   try{
     const d = await api({ op:'list', tab:S.tab });
-    if (!d.ok) throw new Error(d.err);
+    if (!d.ok){ if (d.err === 'auth'){ toLogin('انتهت جلسة الدخول، سجّل الدخول مجدداً.'); return; } throw new Error(d.err); }
     S.data = d;
     S.items = d.rows.map(x => ({ key:'r'+x.r, r:x.r, o:x.v.slice(), v:x.v.slice(), del:false, open:false }));
     const rounds = [...new Set(d.rows.map(x => x.v[0]).filter(Boolean))];
@@ -398,7 +446,7 @@ function pickField(it, c, label, kind){
     else if (n && !nameKnown(label, n)){ cls += ' warn'; note = '<div class="note warn">الاسم غير موجود في قائمة الحكام</div>'; }
   }
   return `<div class="${cls}"><label>${esc(label)}</label>
-    <button class="pick" onclick="openPicker('${it.key}',${c},'${kind}')">${n ? esc(n) : '<span class="ph">اختر…</span>'}</button>${note}</div>`;
+    <div class="pickrow"><button class="pick" onclick="openPicker('${it.key}',${c},'${kind}')">${n ? esc(n) : '<span class="ph">اختر…</span>'}</button>${n && (kind === 'ref' || kind === 'assessor') ? `<button class="x" aria-label="إزالة الاسم" onclick="setv('${it.key}',${c},'')">✕</button>` : ''}</div>${note}</div>`;
 }
 
 function updateBar(){
@@ -485,7 +533,7 @@ $('saveBtn').onclick = async () => {
   $('saveBtn').disabled = true; $('saveBtn').textContent = 'جارٍ الحفظ…';
   try{
     const r = await api(payload);
-    if (!r.ok) throw new Error(r.err);
+    if (!r.ok){ if (r.err === 'auth'){ alert('انتهت جلسة الدخول. سجّل الدخول مجدداً ثم أعد التعديلات.'); S.items=[]; toLogin(); return; } throw new Error(r.err); }
     if (r.conflicts && r.conflicts.length) alert('تم حفظ باقي التغييرات، لكن ' + r.conflicts.length + ' مباراة عدّلها شخص آخر في نفس الوقت فلم تُحفظ. ستظهر الآن آخر نسخة، أعد تعديلها إذا لزم.');
     else toast('تم الحفظ ✅');
     await reload();
@@ -513,7 +561,9 @@ function demoApi(b){
         rows:[{r:6,v:['8','الأحد 29/11/2026','14:15','النجمة','الحكمة','مدينة كميل شمعون الرياضية','وائل حيدر','','','','علي رضا','ربيع عميرات','كاظم الخنسا','محمد المولى']}] }
     }});
   const wait = x => new Promise(res => setTimeout(() => res(JSON.parse(JSON.stringify(x))), 250));
-  if (b.op === 'meta') return wait(D.meta);
+  if (b.op === 'sendcode') return wait(b.email.indexOf('@') > 0 ? { ok:true } : { ok:false, err:'notmember' });
+  if (b.op === 'verify') return wait(b.code === '123456' ? { ok:true, token:'demo', user:'عضو تجريبي' } : { ok:false, err:'badcode' });
+  if (b.op === 'meta') return wait(Object.assign({ user:'عضو تجريبي' }, D.meta));
   if (b.op === 'list'){
     const t = D.tabs[b.tab] || { header:['المرحلة','التاريخ','الساعة','الفريق المضيف','الفريق الضيف','الملعب','الحكم','المساعد الأول','المساعد الثاني','مراقب الحكام'], rows:[] };
     const busy = {};
