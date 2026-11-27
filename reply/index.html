@@ -30,7 +30,9 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="card" id="bad">
+  <div class="card" id="loading"><div class="sub" style="margin:0">جارٍ التحميل…</div></div>
+
+  <div class="card hide" id="bad">
     <h1>الرابط غير صالح</h1>
     <div class="sub">يُرجى استخدام الزر الموجود في رسالة التعيين كما هو، أو التواصل مع لجنة الحكام.</div>
   </div>
@@ -63,7 +65,7 @@
   const API = 'https://script.google.com/macros/s/AKfycbzQfLC6DN7_bOFKWDaCFZGi1_ub6liY9gRXfZgbUbQjvUa49KsRfQ01kMLV5CyTLjB5/exec';
 
   const q = new URLSearchParams(location.search);
-  const A = q.get('a'), D = q.get('d'), S = q.get('s');
+  const A = q.get('a'), D = q.get('d'), S = q.get('s'), K = q.get('k');
   const $ = id => document.getElementById(id);
   const msg = $('msg'), btn = $('send');
   function show(t, ok) { msg.textContent = t; msg.className = 'msg ' + (ok ? 'ok' : 'err'); msg.style.display = 'block'; }
@@ -74,15 +76,16 @@
     return JSON.parse(new TextDecoder('utf-8').decode(bytes));
   }
   function call(op, reason) {
-    const u = API + '?api=1&op=' + op + '&a=' + encodeURIComponent(A) + '&d=' + encodeURIComponent(D) +
-              '&s=' + encodeURIComponent(S) + (reason ? '&reason=' + encodeURIComponent(reason) : '');
+    const id = K ? '&k=' + encodeURIComponent(K)
+                 : '&d=' + encodeURIComponent(D) + '&s=' + encodeURIComponent(S);
+    const u = API + '?api=1&op=' + op + '&a=' + encodeURIComponent(A) + id +
+              (reason ? '&reason=' + encodeURIComponent(reason) : '');
     return fetch(u, { credentials: 'omit' }).then(r => r.json());
   }
 
-  let p = null;
-  try { if ((A === 'c' || A === 'x') && D && S) p = decode(D); } catch (e) { p = null; }
-
-  if (p) {
+  function bad() { $('loading').classList.add('hide'); $('main').classList.add('hide'); $('bad').classList.remove('hide'); }
+  function render(p) {
+    $('loading').classList.add('hide');
     $('bad').classList.add('hide');
     $('main').classList.remove('hide');
     $('head').textContent = A === 'c' ? '✅ تأكيد الحضور' : '❌ الاعتذار عن الحضور';
@@ -93,19 +96,34 @@
     $('time').textContent = (p.t || '') + ' (بتوقيت بيروت)';
     $('venue').textContent = p.v || '';
     $('role').textContent = p.r || '';
-    const label = A === 'x' ? 'إرسال الاعتذار' : '✅ أؤكد حضوري';
     btn.textContent = label;
     btn.className = A === 'x' ? 'no-btn' : 'ok-btn';
     if (A === 'x') $('reasonBox').classList.remove('hide');
+  }
+  function showPrev(r) {
+    if (r && r.prev) {
+      $('prev').textContent = 'سبق أن أرسلتم «' + r.prev.status + '» بتاريخ ' + r.prev.when + '. يمكنكم الإرسال مجددًا لتعديل ردكم.';
+      $('prev').style.display = 'block';
+    }
+  }
+  const label = A === 'x' ? 'إرسال الاعتذار' : '✅ أؤكد حضوري';
+  const okA = A === 'c' || A === 'x';
 
-    call('check').then(r => {
-      if (!r.ok) { $('main').classList.add('hide'); $('bad').classList.remove('hide'); return; }
-      if (r.prev) {
-        $('prev').textContent = 'سبق أن أرسلتم «' + r.prev.status + '» بتاريخ ' + r.prev.when + '. يمكنكم الإرسال مجددًا لتعديل ردكم.';
-        $('prev').style.display = 'block';
-      }
-    }).catch(() => {});
+  if (okA && K) {
+    // short link: details come from the committee's sheet
+    call('check').then(r => { if (!r.ok || !r.info) return bad(); render(r.info); showPrev(r); })
+                 .catch(() => bad());
+  } else {
+    let p = null;
+    try { if (okA && D && S) p = decode(D); } catch (e) { p = null; }
+    if (!p) bad();
+    else {
+      render(p);
+      call('check').then(r => { if (!r.ok) return bad(); showPrev(r); }).catch(() => {});
+    }
+  }
 
+  {
     btn.addEventListener('click', () => {
       const reason = A === 'x' ? $('reason').value.trim() : '';
       if (A === 'x' && !reason) { show('يُرجى كتابة السبب.', false); return; }
